@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Quest Studio</title>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#ffffff; --ink:#1e2a3a; --muted:#64748b;
+    --accent:#6366f1; --accent2:#22c55e; --gold:#f59e0b; --rose:#ef4444;
+    --sky:#0ea5e9; --radius:16px; --shadow:0 4px 16px rgba(30,42,58,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  header{background:linear-gradient(120deg,#6366f1,#8b5cf6 55%,#ec4899);color:#fff;padding:28px 24px 34px;text-align:center}
+  header h1{font-size:1.9rem;letter-spacing:.5px}
+  header p{opacity:.9;margin-top:4px;font-size:.95rem}
+  .xp-pill{display:inline-block;margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);padding:6px 16px;border-radius:999px;font-weight:600}
+  main{max-width:1080px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:28px}
+  section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+  .sec-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .sec-num{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:700;flex:none}
+  .sec-head h2{font-size:1.3rem}
+  .sec-sub{color:var(--muted);font-size:.92rem;margin-bottom:18px}
+
+  /* Learning Path */
+  .levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .level-card{border:2px solid #e2e8f0;border-radius:14px;padding:18px;position:relative;transition:.25s;display:flex;flex-direction:column;gap:8px}
+  .level-card.current{border-color:var(--accent);background:#f5f5ff;transform:translateY(-3px);box-shadow:0 8px 20px rgba(99,102,241,.18)}
+  .level-card.done{border-color:var(--accent2);background:#f0fdf4}
+  .level-card.locked{opacity:.55;filter:grayscale(.4)}
+  .badge{position:absolute;top:-12px;right:14px;font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:999px;color:#fff;letter-spacing:.5px}
+  .badge.done{background:var(--accent2)} .badge.current{background:var(--accent)} .badge.locked{background:#94a3b8}
+  .level-card h3{font-size:1.1rem}
+  .level-card ul{list-style:none;font-size:.85rem;color:var(--muted);flex:1}
+  .level-card ul li::before{content:"• ";color:var(--accent)}
+  .progress-bar{height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+  .progress-bar>div{height:100%;background:linear-gradient(90deg,var(--accent),#8b5cf6);border-radius:999px;transition:width .6s ease}
+  .btn{border:none;border-radius:10px;padding:10px 16px;font-weight:600;font-size:.9rem;cursor:pointer;transition:.2s;color:#fff}
+  .btn-primary{background:var(--accent)} .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(99,102,241,.35)}
+  .btn-green{background:var(--accent2)}
+  .btn:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none;transform:none}
+  .path-note{margin-top:14px;font-size:.85rem;color:var(--muted);text-align:center}
+
+  /* App Interface Lesson */
+  .tool-tabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  .tool-tab{border:2px solid #e2e8f0;background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:8px;transition:.2s;color:var(--ink)}
+  .tool-tab:hover{border-color:var(--accent)}
+  .tool-tab.active{border-color:var(--accent);background:#eef2ff;color:var(--accent)}
+  .tool-tab .ico{font-size:1.1rem}
+  .lesson{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px}
+  @media(max-width:800px){.lesson{grid-template-columns:1fr}}
+  /* fake app window */
+  .mock-app{border:2px solid #cbd5e1;border-radius:12px;overflow:hidden;background:#f8fafc;box-shadow:var(--shadow)}
+  .mock-titlebar{background:linear-gradient(90deg,var(--tool,#6366f1),#334155);color:#fff;padding:8px 12px;font-size:.8rem;font-weight:600;display:flex;justify-content:space-between}
+  .mock-ribbon{background:#fff;border-bottom:1px solid #e2e8f0;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px}
+  .mock-btn{font-size:.7rem;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;background:#f1f5f9;color:#334155}
+  .mock-btn.hl{background:#fff7ed;border-color:var(--gold);color:#b45309;font-weight:700}
+  .mock-body{padding:10px;font-size:.75rem}
+  .grid-cell{border:1px solid #dbe2ea;padding:5px 7px;background:#fff}
+  .grid-head{background:#eef2f7;font-weight:700;text-align:center}
+  .grid-sel{outline:2px solid var(--green,#22c55e);outline-offset:-2px;background:#f0fdf4!important}
+  .mock-panel{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-size:.72rem}
+  .mock-canvas{background:#eef2ff;border-radius:8px;height:120px;display:grid;place-items:center;color:#6366f1;font-weight:700;font-size:.8rem;border:1px dashed #c7d2fe}
+  .hotspots{list-style:none;font-size:.85rem}
+  .hotspots li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed #e2e8f0}
+  .hotspots li:last-child{border-bottom:none}
+  .hotspot-tag{flex:none;background:var(--gold);color:#fff;font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:6px;margin-top:2px}
+  .hotspots b{display:block;font-size:.88rem}
+  .hotspots span{color:var(--muted);font-size:.8rem}
+  .pattern-box{margin-top:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;font-size:.85rem}
+  .pattern-box h4{font-size:.9rem;margin-bottom:6px;color:var(--accent)}
+
+  /* Practice Game */
+  .practice-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px}
+  @media(max-width:800px){.practice-layout{grid-template-columns:1fr}}
+  .task-card{background:#f8fafc;border:2px solid #e2e8f0;border-radius:12px;padding:16px}
+  .task-card .lvl{font-size:.72rem;font-weight:700;color:#fff;background:var(--accent);padding:3px 10px;border-radius:999px;display:inline-block;margin-bottom:8px}
+  .task-card h3{font-size:1.05rem;margin-bottom:6px}
+  .task-card p{font-size:.9rem;color:var(--muted)}
+  .streak{margin-top:10px;font-weight:700;color:var(--gold);font-size:.9rem}
+  .answer-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .answer-row input{flex:1;min-width:180px;border:2px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-family:Consolas,monospace;font-size:.95rem}
+  .answer-row input:focus{outline:none;border-color:var(--accent)}
+  .feedback{margin-top:12px;padding:12px 14px;border-radius:10px;font-weight:600;font-size:.92rem;display:none;animation:pop .3s ease}
+  .feedback.pass{display:block;background:#f0fdf4;color:#15803d;border:2px solid #86efac}
+  .feedback.fail{display:block;background:#fef2f2;color:#b91c1c;border:2px solid #fca5a5}
+  @keyframes pop{0%{transform:scale(.95);opacity:0}100%{transform:scale(1);opacity:1}}
+  .sample-sheet{border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;font-size:.8rem}
+  .sample-sheet table{width:100%;border-collapse:collapse}
+  .sample-sheet th,.sample-sheet td{border:1px solid #e2e8f0;padding:6px 10px;text-align:left}
+  .sample-sheet th{background:#eef2f7}
+  .sample-sheet td.rownum{background:#f1f5f9;color:#94a3b8;width:28px;text-align:center;font-weight:700}
+  .target-cell{cursor:text;background:#f0fdf4!important;position:relative}
+  .data-cell{cursor:cell;user-select:none}
+  .range-sel{background:#bbf7d0!important;outline:2px solid #16a34a;outline-offset:-2px;font-weight:700}
+  .gap-col{background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 6px,#f1f5f9 6px,#f1f5f9 12px);border:none!important}
+  .target-cell .ghost{color:#94a3b8;font-style:italic}
+  .target-cell .typed{font-family:Consolas,monospace;color:#15803d;font-weight:700}
+  .fx-bar{display:flex;align-items:center;gap:8px;border:2px solid #e2e8f0;border-radius:10px;padding:4px 8px;margin-bottom:10px;background:#fff}
+  .fx-bar:focus-within{border-color:var(--accent)}
+  .namebox{flex:none;background:#eef2f7;border:1px solid #cbd5e1;border-radius:6px;padding:3px 10px;font-weight:700;font-size:.85rem;color:#334155}
+  .fx-label{flex:none;font-weight:700;font-style:italic;color:#64748b;font-size:.85rem}
+  .fx-bar input{flex:1;border:none;outline:none;font-family:Consolas,monospace;font-size:.95rem;padding:4px 2px;background:transparent}
+  .fx-hint{font-size:.75rem;color:var(--muted);margin-bottom:8px}
+  .confetti{position:fixed;top:-10px;font-size:1.3rem;animation:fall 1.6s linear forwards;pointer-events:none;z-index:99}
+  @keyframes fall{to{transform:translateY(110vh) rotate(360deg);opacity:0}}
+  footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 0 30px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Skill Quest Studio</h1>
+  <p>Level up from Beginner to Advanced — Excel, Power BI, Google Sheets, Looker Studio, Gemini &amp; Copilot</p>
+  <div class="xp-pill">⭐ XP: <span id="xp">0</span> &nbsp;|&nbsp; 🔥 Streak: <span id="streak">0</span></div>
+</header>
+
+<main>
+  <!-- 1. LEARNING PATH -->
+  <section id="path-section">
+    <div class="sec-head"><div class="sec-num" style="background:var(--accent)">1</div><h2>Learning Path</h2></div>
+    <p class="sec-sub">Finish a level to unlock the next one. Your quest: Beginner → Intermediate → Advanced.</p>
+    <div class="levels" id="levels"></div>
+    <p class="path-note" id="path-note"></p>
+  </section>
+
+  <!-- 2. APP INTERFACE LESSON -->
+  <section id="lesson-section">
+    <div class="sec-head"><div class="sec-num" style="background:var(--sky)">2</div><h2>App Interface Lesson</h2></div>
+    <p class="sec-sub">Pick a tool and learn its real interface — the main buttons, menus, and how people actually use it.</p>
+    <div class="tool-tabs" id="tool-tabs"></div>
+    <div class="lesson">
+      <div class="mock-app" id="mock-app"></div>
+      <div>
+        <ul class="hotspots" id="hotspots"></ul>
+        <div class="pattern-box" id="pattern-box"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. PRACTICE GAME -->
+  <section id="practice-section">
+    <div class="sec-head"><div class="sec-num" style="background:var(--accent2)">3</div><h2>Practice Game</h2></div>
+    <p class="sec-sub">Hands-on challenges with instant feedback. Answer in the box and check it right away.</p>
+    <div class="practice-layout">
+      <div class="task-card" id="task-card"></div>
+      <div>
+        <div class="fx-bar">
+          <span class="namebox" id="namebox">B7</span>
+          <span class="fx-label">fx</span>
+          <input id="answer" type="text" placeholder="Type the formula like in the real app…" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="fx-hint">Click the green cell and type — or type in the formula bar. While typing a formula (after "="), <b>click a data cell to add its reference</b>, then <b>drag or Shift+click another cell</b> to build a range like F2:G10. Press Enter to confirm.</p>
+        <div class="sample-sheet" id="sample-sheet"></div>
+        <div class="answer-row">
+          <button class="btn btn-primary" id="check-btn">Check Answer</button>
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>Skill Quest Studio — a practice playground. All data is sample data made up for learning. Nothing is saved between visits.</footer>
+
+<script>
+/* ============ DATA ============ */
+const LEVELS = [
+  { key:'beginner', name:'Beginner', emoji:'🌱', tasks:3,
+    topics:['What a cell, row & column are','Simple formulas: SUM & AVERAGE','Sorting & filtering data'] },
+  { key:'intermediate', name:'Intermediate', emoji:'⚡', tasks:3,
+    topics:['VLOOKUP & IF logic','Charts & PivotTables basics','Cleaning messy data'] },
+  { key:'advanced', name:'Advanced', emoji:'🏆', tasks:3,
+    topics:['INDEX/MATCH & dynamic arrays','Building dashboards','Automation with AI copilots'] },
+];
+
+const TOOLS = [
+  { key:'excel', name:'Excel', ico:'📊', color:'#217346', kind:'spreadsheet',
+    title:'Excel — Workbook1.xlsx',
+    ribbon:['Home','Insert','Formulas','Data','Review','View'],
+    hl:'fx Insert Function',
+    body:'grid',
+    hotspots:[
+      ['Ribbon','All the commands live here, grouped into tabs like Home, Insert, Formulas and Data.'],
+      ['Formula Bar (fx)','Shows the real content of the selected cell — this is where formulas are typed and edited.'],
+      ['Name Box','The little box on the left of the formula bar. It tells you which cell is selected, like B4.'],
+      ['Sheet Tabs','Bottom of the window. One workbook can hold many sheets — click to switch between them.'],
+      ['Status Bar','Bottom edge. Quick stats like Sum and Average of the cells you highlight.'],
+    ],
+    pattern:'Common use pattern: type raw data into a table → select a cell → type "=" and a formula (like =SUM(B2:B10)) → press Enter → drag the small corner handle (fill handle) down to copy the formula to more rows.' },
+
+  { key:'gsheets', name:'Google Sheets', ico:'🟩', color:'#0f9d58', kind:'spreadsheet',
+    title:'Google Sheets — Untitled spreadsheet',
+    ribbon:['File','Edit','View','Insert','Format','Data','Tools','Extensions'],
+    hl:'Σ Functions',
+    body:'grid',
+    hotspots:[
+      ['Menu Bar','File, Edit, View, Insert, Format, Data, Tools — Sheets puts commands in menus instead of a ribbon.'],
+      ['Toolbar','The row of icons under the menus: bold, fill colour, borders, and the Σ Functions button for quick formulas.'],
+      ['Formula Bar','Same idea as Excel — click any cell, see and edit its formula here.'],
+      ['Share Button (blue)','Top-right. Sheets is built for collaboration — this invites people to view or edit live.'],
+      ['Sheet Tabs','Bottom-left, just like Excel. Right-click a tab to rename, duplicate or delete a sheet.'],
+    ],
+    pattern:'Common use pattern: paste data in → select the header row → Data ▸ Create a filter → use =SUMIF or =QUERY to summarise → everything auto-saves to Google Drive as you type.' },
+
+  { key:'powerbi', name:'Power BI', ico:'📈', color:'#f2c811', kind:'bi',
+    title:'Power BI Desktop — Sales Report',
+    ribbon:['Home','View','Insert','Modeling','Help'],
+    hl:'Visualizations pane',
+    body:'bi',
+    hotspots:[
+      ['Report Canvas','The big blank area in the middle. This is where you drag visuals like bar charts, cards and maps.'],
+      ['Visualizations Pane','Right side. Pick a chart type, then drag fields into the Axis, Values and Legend wells below it.'],
+      ['Fields / Data Pane','Lists every table and column from your data model. Tick a checkbox to add it to the selected visual.'],
+      ['Page Tabs','Bottom of the canvas. A report can have many pages — like chapters of a dashboard story.'],
+      ['Ribbon (Home tab)','Import data (Get Data), refresh, and publish the finished report to the Power BI Service.'],
+    ],
+    pattern:'Common use pattern: Home ▸ Get Data ▸ Excel workbook → load it → choose a chart in Visualizations → drag a category field to Axis and a number field to Values → add slicers so readers can filter the whole page with one click.' },
+
+  { key:'looker', name:'Looker Studio', ico:'🔵', color:'#4285f4', kind:'bi',
+    title:'Looker Studio — untitled report',
+    ribbon:['File','Edit','View','Insert','Resource','Arrange','Help'],
+    hl:'Data panel',
+    body:'bi',
+    hotspots:[
+      ['Report Canvas','Free-form canvas. Click a chart then drag its corners to resize — everything is drag-and-drop.'],
+      ['Data Panel','Right side. Choose your data source, then drag dimensions and metrics onto charts.'],
+      ['Chart Menu (Insert)','Insert ▸ Chart gives you tables, scorecards, time series, pie charts and Google Maps.'],
+      ['Setup / Style Tabs','On the selected chart: Setup chooses the data, Style chooses colours, fonts and borders.'],
+      ['Share (top-right)','Works like Google Docs — share the live dashboard with a link, no downloads needed.'],
+    ],
+    pattern:'Common use pattern: connect a Google Sheets data source → Insert ▸ Scorecard for one big number → Insert ▸ Time series for trends → add a date-range control so viewers can pick any period.' },
+
+  { key:'gemini', name:'Gemini for Sheets', ico:'✨', color:'#8b5cf6', kind:'ai',
+    title:'Google Sheets — Gemini side panel',
+    ribbon:['File','Edit','View','Insert','Format','Data','Tools'],
+    hl:'✨ Gemini panel',
+    body:'ai',
+    hotspots:[
+      ['Gemini Side Panel','Right-hand panel in Google Sheets. You type a plain-language request and Gemini works inside the sheet.'],
+      ['Prompt Box','Where you ask things like “summarise the sales column” or “write a formula to count overdue invoices”.'],
+      ['Insert / Copy Buttons','Gemini shows a draft (a table, text or formula) with buttons to insert it straight into your sheet.'],
+      ['Help Me Organise / Visualise','Preset actions: Gemini can auto-classify data or suggest charts from your selection.'],
+      ['Your Data Stays Visible','Gemini only works with what is in the sheet — always review its output before inserting.'],
+    ],
+    pattern:'Common use pattern: select your data → open the Gemini panel → ask “categorise these expenses” → review the preview table → click Insert to drop it in as a new column.' },
+
+  { key:'copilot', name:'Copilot (Excel/Power BI)', ico:'🤖', color:'#0ea5e9', kind:'ai',
+    title:'Excel — Copilot pane',
+    ribbon:['Home','Insert','Formulas','Data','Copilot'],
+    hl:'🤖 Copilot pane',
+    body:'ai',
+    hotspots:[
+      ['Copilot Button','In the ribbon (Home tab or its own Copilot tab) — opens the pane on the right of the workbook.'],
+      ['Chat Box','Ask in plain English: “show total sales by state as a PivotChart” or “explain what this formula does”.'],
+      ['Preview Cards','Copilot answers with a preview — a pivot table, a chart or a column of results — before changing anything.'],
+      ['Add to Sheet / Keep It','Buttons that confirm you want the suggestion placed into your workbook.'],
+      ['Analysis Suggestions','Copilot can scan the sheet and offer insights like top values, trends and outliers.'],
+    ],
+    pattern:'Common use pattern: put data in an Excel Table (Ctrl+T) → open Copilot → ask “analyse my sales data” → read the insights → ask for a chart → click “Add to a new sheet” to keep it.' },
+];
+
+const PRACTICE = {
+  beginner: [
+    { q:'Add up all the sales amounts in column B, from row 2 to row 6, in this sheet.',
+      accept:[/= *sum *\( *b2 *: *b6 *\)/i], hint:'Start with = and use SUM with the range B2:B6.',
+      pass:'✅ Pass! =SUM(B2:B6) is exactly right. That total is now live in the cell.' },
+    { q:'Find the average price of the 5 items listed in column B (B2 to B6).',
+      accept:[/= *average *\( *b2 *: *b6 *\)/i], hint:'Use the AVERAGE function with the range B2:B6.',
+      pass:'✅ Pass! AVERAGE is the go-to function for a typical value.' },
+    { q:'Which function counts how many cells in the range C2:C6 contain numbers?',
+      accept:[/= *count *\( *c2 *: *c6 *\)/i, /^count *$/i], hint:'It is a 5-letter function starting with C.',
+      pass:'✅ Pass! COUNT counts numbers; COUNTA would count anything non-empty.' },
+  ],
+  intermediate: [
+    { q:'The item name is in A2. Look up its price in the table F2:G10 and return the price from column 2. Which formula does it?',
+      accept:[/= *vlookup *\( *a2 *, *f2 *: *g10 *, *2 *, *(false|0)* *\)/i], hint:'Use VLOOKUP with the lookup value A2, then the table, then column 2.',
+      pass:'✅ Pass! VLOOKUP(A2, F2:G10, 2, FALSE) is the classic lookup pattern.' },
+    { q:'Write an IF formula: if B2 is greater than 100, show "Pass", otherwise show "Review".',
+      accept:[/= *if *\( *b2 *> *100 *, *['"]pass['"] *, *['"]review['"] *\)/i], hint:'Structure: =IF(condition, "Pass", "Review").',
+      pass:'✅ Pass! IF(condition, value if true, value if false) — you nailed the structure.' },
+    { q:'What single function sums only the Pen sales in D2:D10 when the item names are in A2:A10?',
+      accept:[/= *sumif *\( *a2 *: *a10 *, *['"]?pen['"]? *, *d2 *: *d10 *\)/i, /^sumif$/i], hint:'It is SUMIF plus three parts: range, criteria, sum range.',
+      pass:'✅ Pass! SUMIF(A:A, "Pen", D:D) sums only the matching rows.' },
+  ],
+  advanced: [
+    { q:'Look up A2 in F2:F10 and return the matching value from G2:G10 — but without VLOOKUP. Which two-function combo does it?',
+      accept:[/= *index *\( *g2 *: *g10 *, *match *\( *a2 *, *f2 *: *f10 *, *0 *\) *\)/i, /index *match/i], hint:'Think: INDEX(range to return from, MATCH(...)).',
+      pass:'✅ Pass! INDEX + MATCH is more flexible than VLOOKUP — it can look left too.' },
+    { q:'In Excel 365, which function spills every unique value from range A2:A20 into one column?',
+      accept:[/= *unique *\( *a2 *: *a20 *\)/i, /^unique$/i], hint:'It is a 6-letter function — also great for de-duplicating lists.',
+      pass:'✅ Pass! UNIQUE is a dynamic array function — the result spills automatically.' },
+    { q:'In Power BI, which DAX function calculates total sales as SUM(Sales[Amount]) evaluated across filters?',
+      accept:[/= *calculate *\( *sum *\( *sales *\[ *amount *\] *\)/i, /^calculate$/i], hint:'The most important DAX function — it changes filter context.',
+      pass:'✅ Pass! CALCULATE is the engine of almost every real Power BI measure.' },
+  ],
+};
+
+const SAMPLE = {
+  // main table A:C plus a lookup table F:G used by Intermediate VLOOKUP tasks
+  headers:['A','B','C','F','G'],
+  gapCols:2, // visual gap where D and E would be
+  rows:[
+    { n:'1',  a:'Item',            b:'Sales (RM)', c:'Qty', f:'Price List', g:'Price (RM)' },
+    { n:'2',  a:'Nasi lemak set',  b:'450', c:'38', f:'Nasi lemak set', g:'12' },
+    { n:'3',  a:'Teh tarik pack',  b:'220', c:'55', f:'Teh tarik pack', g:'8'  },
+    { n:'4',  a:'Kuih raya box',   b:'610', c:'29', f:'Kuih raya box',  g:'25' },
+    { n:'5',  a:'Sambal jar',      b:'180', c:'12', f:'Sambal jar',     g:'15' },
+    { n:'6',  a:'Durian candy',    b:'95',  c:'40', f:'Durian candy',   g:'5'  },
+    { n:'7',  a:'', b:'', c:'', f:'Keropok lekor', g:'9' },
+    { n:'8',  a:'', b:'', c:'', f:'Serunding', g:'18' },
+    { n:'9',  a:'', b:'', c:'', f:'Dodol', g:'14' },
+    { n:'10', a:'', b:'', c:'', f:'Kaya', g:'7' },
+  ],
+};
+
+/* ============ STATE ============ */
+let state = { xp:0, streak:0, levelIndex:0, tasksDone:0, tool:'excel', taskIndex:0 };
+
+/* ============ SECTION 1: LEARNING PATH ============ */
+function renderLevels(){
+  const wrap = document.getElementById('levels');
+  wrap.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const isDone = i < state.levelIndex;
+    const isCurrent = i === state.levelIndex;
+    const isLocked = i > state.levelIndex;
+    const card = document.createElement('div');
+    card.className = 'level-card ' + (isDone ? 'done' : isCurrent ? 'current' : 'locked');
+    const badge = isDone ? '<div class="badge done">✔ DONE</div>'
+      : isCurrent ? '<div class="badge current">▶ IN PROGRESS</div>'
+      : '<div class="badge locked">🔒 LOCKED</div>';
+    const progress = isDone ? 100 : isCurrent ? Math.round(state.tasksDone / lv.tasks * 100) : 0;
+    card.innerHTML = `
+      ${badge}
+      <h3>${lv.emoji} ${lv.name}</h3>
+      <ul>${lv.topics.map(t=>`<li>${t}</li>`).join('')}</ul>
+      <div class="progress-bar"><div style="width:${progress}%"></div></div>
+      <button class="btn ${isDone?'btn-green':'btn-primary'}" ${isLocked?'disabled':''} data-level="${i}">
+        ${isDone ? '✔ Completed' : isCurrent ? (state.tasksDone===0 ? 'Start '+lv.name : 'Continue '+lv.name) : '🔒 Locked'}
+      </button>`;
+    wrap.appendChild(card);
+  });
+  const cur = LEVELS[state.levelIndex];
+  document.getElementById('path-note').textContent =
+    state.levelIndex >= LEVELS.length
+      ? '🎉 Quest complete! You finished all three levels — replay any practice task to keep sharp.'
+      : `Next up: finish ${cur.tasks - state.tasksDone} more practice task${cur.tasks-state.tasksDone===1?'':'s'} in ${cur.name} to unlock the next level.`;
+  wrap.querySelectorAll('button[data-level]').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = +b.dataset.level;
+      if (i === state.levelIndex) {
+        document.getElementById('task-card').scrollIntoView({behavior:'smooth', block:'center'});
+      } else if (i < state.levelIndex) {
+        state.taskIndex = 0;
+        renderTask(); document.getElementById('practice-section').scrollIntoView({behavior:'smooth'});
+      }
+    });
+  });
+}
+
+/* ============ SECTION 2: LESSON ============ */
+function renderTabs(){
+  const tabs = document.getElementById('tool-tabs');
+  tabs.innerHTML = '';
+  TOOLS.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'tool-tab' + (t.key===state.tool ? ' active' : '');
+    b.innerHTML = `<span class="ico">${t.ico}</span>${t.name}`;
+    b.addEventListener('click', () => { state.tool = t.key; renderTabs(); renderLesson(); });
+    tabs.appendChild(b);
+  });
+}
+
+function renderLesson(){
+  const t = TOOLS.find(x => x.key === state.tool);
+  document.getElementById('mock-app').style.setProperty('--tool', t.color);
+  let bodyHtml = '';
+  if (t.body === 'grid') {
+    bodyHtml = `<div class="mock-body"><div style="display:grid;grid-template-columns:34px repeat(3,1fr)">
+      ${['','A','B','C'].map(h=>`<div class="grid-cell grid-head">${h}</div>`).join('')}
+      ${[['1','Item','Sales (RM)','Qty'],['2','Nasi lemak set','450','38'],['3','Teh tarik pack','220','55']]
+        .map(r => `<div class="grid-cell grid-head">${r[0]}</div>` + r.slice(1).map((c,j)=>`<div class="grid-cell ${j===0?'grid-sel':''}">${c}</div>`).join('')).join('')}
+      </div><div style="margin-top:6px;color:#94a3b8">fx ${t.key==='gsheets' ? '=SUM(B2:B6)' : 'fx | =SUM(B2:B6)'}</div></div>`;
+  } else if (t.body === 'bi') {
+    bodyHtml = `<div class="mock-body"><div class="mock-canvas">${t.key==='looker'?'📊 Scorecard · Time series':'📈 Bar chart · Slicer'}</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div class="mock-panel" style="flex:1"><b>${t.key==='looker'?'Data panel':'Visualizations'}</b><br>Dimension ▸ Region<br>Metric ▸ Sales</div>
+        <div class="mock-panel" style="flex:1"><b>Fields</b><br>☑ Region<br>☑ Sales</div>
+      </div></div>`;
+  } else {
+    bodyHtml = `<div class="mock-body"><div class="mock-panel"><b>✨ ${t.key==='gemini'?'Gemini':'Copilot'}</b>
+      <div style="background:#f1f5f9;border-radius:8px;padding:8px;margin-top:6px;font-style:italic">"Summarise the sales column and highlight the top item."</div>
+      <div style="margin-top:6px">▶ Draft: Top item is <b>Kuih raya box</b> (RM610). Insert chart? <span class="mock-btn hl">Insert</span></div>
+      </div><div class="mock-canvas" style="margin-top:8px;height:70px">Your sheet stays on the left · AI panel on the right</div></div>`;
+  }
+  document.getElementById('mock-app').innerHTML = `
+    <div class="mock-titlebar"><span>${t.title}</span><span>— □ ✕</span></div>
+    <div class="mock-ribbon">${t.ribbon.map(r=>`<span class="mock-btn ${r===t.hl.split(' ').pop()||r==='Copilot'||r==='Extensions'?'hl':''}">${r}</span>`).join('')}<span class="mock-btn hl">${t.hl}</span></div>
+    ${bodyHtml}`;
+  document.getElementById('hotspots').innerHTML = t.hotspots.map((h,i)=>`
+    <li><span class="hotspot-tag">${i+1}</span><div><b>${h[0]}</b><span>${h[1]}</span></div></li>`).join('');
+  document.getElementById('pattern-box').innerHTML = `<h4>🔁 How people actually use it</h4>${t.pattern}`;
+}
+
+/* ============ SECTION 3: PRACTICE ============ */
+function renderSheet(){
+  const s = SAMPLE;
+  let html = '<table><thead><tr>';
+  html += '<th class="rownum"></th>';
+  // A, B, C | gap for D, E | F, G
+  const headRow = s.rows[0];
+  html += `<th class="grid-head">A</th><th class="grid-head">B</th><th class="grid-head">C</th>`;
+  html += `<th class="gap-col" colspan="${s.gapCols}"></th>`;
+  html += `<th class="grid-head">F</th><th class="grid-head">G</th></tr></thead><tbody>`;
+  s.rows.forEach(r => {
+    html += `<tr><td class="rownum">${r.n}</td>`;
+    html += `<td class="data-cell" data-ref="A${r.n}">${r.a}</td>`;
+    html += `<td class="data-cell" data-ref="B${r.n}">${r.b}</td>`;
+    html += `<td class="data-cell" data-ref="C${r.n}">${r.c}</td>`;
+    html += `<td class="gap-col" colspan="${s.gapCols}"></td>`;
+    html += `<td class="data-cell" data-ref="F${r.n}">${r.f}</td>`;
+    html += `<td class="data-cell" data-ref="G${r.n}">${r.g}</td></tr>`;
+  });
+  // answer cell in row 11, below both tables
+  html += `<tr><td class="rownum">11</td><td id="cell-target" class="target-cell" contenteditable="true" spellcheck="false" colspan="3"><span class="ghost">👆 your answer goes here</span></td><td class="gap-col" colspan="${s.gapCols}"></td><td></td><td></td></tr>`;
+  html += '</tbody></table>';
+  document.getElementById('sample-sheet').innerHTML = html;
+  document.getElementById('namebox').textContent = 'A11';
+
+  const cell = document.getElementById('cell-target');
+  const bar = document.getElementById('answer');
+  const syncFromCell = () => {
+    bar.value = cell.querySelector('.ghost') ? '' : cell.textContent;
+    highlightRange();
+  };
+  const syncFromBar = () => {
+    cell.innerHTML = bar.value ? '' : '<span class="ghost">👆 your answer goes here</span>';
+    if (bar.value) cell.appendChild(document.createTextNode(bar.value));
+    highlightRange();
+  };
+  cell.addEventListener('focus', () => {
+    if (cell.querySelector('.ghost')) { cell.innerHTML = ''; bar.value = ''; }
+  });
+  cell.addEventListener('click', () => {
+    if (cell.querySelector('.ghost')) { cell.innerHTML = ''; bar.value = ''; cell.focus(); }
+  });
+  cell.addEventListener('input', syncFromCell);
+  bar.addEventListener('input', syncFromBar);
+  cell.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); bar.value = cell.textContent; checkAnswer(); }
+  });
+
+  /* Excel-style range picking: with a formula in progress, click a data cell
+     to insert its ref, then click/drag further cells to extend into a range. */
+  const formulaInProgress = () => {
+    const v = bar.value;
+    return v && v.trim().startsWith('=') && !v.trim().endsWith(')');
+  };
+  let anchor = null;      // active during a drag
+  let lastPick = null;    // persists after mouseup, enables Shift+click range end
+  const dataCells = () => Array.from(document.querySelectorAll('#sample-sheet .data-cell'));
+  const cellRe = '([A-G])([0-9]+)';
+
+  const clearRangeHighlight = () => dataCells().forEach(td => td.classList.remove('range-sel'));
+
+  function highlightRange(){
+    clearRangeHighlight();
+    const re = new RegExp(cellRe + ' *: *' + cellRe + '\\s*$', 'i');
+    const m = bar.value.match(re);
+    if (m) {
+      const c1 = m[1].charCodeAt(0), c2 = m[3].charCodeAt(0);
+      const r1 = +m[2], r2 = +m[4];
+      for (let c = Math.min(c1,c2); c <= Math.max(c1,c2); c++)
+        for (let r = Math.min(r1,r2); r <= Math.max(r1,r2); r++) {
+          const td = document.querySelector(`#sample-sheet .data-cell[data-ref="${String.fromCharCode(c)}${r}"]`);
+          if (td) td.classList.add('range-sel');
+        }
+    }
+  }
+
+  dataCells().forEach(td => {
+    td.addEventListener('mousedown', e => {
+      if (!formulaInProgress()) return;
+      e.preventDefault();
+      if (anchor) {
+        // mid-drag click lands on the end cell: finalize the range
+        extendRange(td.dataset.ref);
+        anchor = null;
+      } else if (e.shiftKey && lastPick) {
+        // Excel-style: click first cell, Shift+click the last cell
+        anchor = lastPick;
+        extendRange(td.dataset.ref);
+        anchor = null;
+      } else {
+        anchor = td.dataset.ref;
+        insertIntoFormula(anchor);
+        td.classList.add('range-sel');
+      }
+      lastPick = td.dataset.ref;
+    });
+    td.addEventListener('mouseenter', () => {
+      if (!anchor || !formulaInProgress()) return;
+      extendRange(td.dataset.ref);
+    });
+    td.addEventListener('mouseup', () => { anchor = null; });
+  });
+
+  function insertIntoFormula(ref){
+    let v = bar.value;
+    v = v.replace(new RegExp('(?:' + cellRe + ' *: *)*' + cellRe + '\\s*$', 'i'), '');
+    bar.value = v + ref;
+    syncFromBar();
+  }
+
+  function extendRange(ref){
+    if (!anchor || ref === anchor) return;
+    const v = bar.value.replace(new RegExp('(?:' + cellRe + ' *: *)*' + cellRe + '\\s*$', 'i'), '');
+    bar.value = v + anchor + ':' + ref;
+    syncFromBar();
+  }
+
+  document.getElementById('sample-sheet').addEventListener('mouseleave', clearRangeHighlight);
+}
+
+document.getElementById('answer').addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+
+function currentTask(){
+  const lv = LEVELS[Math.min(state.levelIndex, LEVELS.length-1)].key;
+  const list = PRACTICE[lv];
+  return list[state.taskIndex % list.length];
+}
+
+function renderTask(){
+  const t = currentTask();
+  const lv = LEVELS[Math.min(state.levelIndex, LEVELS.length-1)];
+  const card = document.getElementById('task-card');
+  card.innerHTML = `
+    <span class="lvl">${lv.emoji} ${lv.name} · Task ${state.taskIndex + 1} of ${lv.tasks}</span>
+    <h3>🧩 ${t.q}</h3>
+    <p>💡 Hint if you're stuck: ${t.hint}</p>
+    <div class="streak">🔥 Streak: ${state.streak} correct in a row</div>`;
+  document.getElementById('answer').value = '';
+  renderSheet();
+  const fb = document.getElementById('feedback');
+  if (state.lastPass) {
+    // keep the pass message visible until the learner starts a new answer
+    state.lastPass = false;
+  } else {
+    fb.className = 'feedback'; fb.textContent = '';
+  }
+}
+
+function confetti(){
+  const bits = ['🎉','⭐','✨','🎊','🏆'];
+  for (let i=0;i<14;i++){
+    const el = document.createElement('div');
+    el.className = 'confetti'; el.textContent = bits[i % bits.length];
+    el.style.left = Math.random()*100 + 'vw';
+    el.style.animationDelay = (Math.random()*0.5) + 's';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 2200);
+  }
+}
+
+function checkAnswer(){
+  const t = currentTask();
+  const input = document.getElementById('answer');
+  const cell = document.getElementById('cell-target');
+  const fb = document.getElementById('feedback');
+  const val = (input.value.trim() || (cell ? cell.textContent.trim() : '')).replace(/\s+/g,' ');
+  if (!val || val === '👆 your answer goes here') { fb.className='feedback fail'; fb.textContent='⚠️ Type an answer first — even a partial formula counts!'; return; }
+  const ok = t.accept.some(rx => rx.test(val));
+  if (ok) {
+    state.xp += 100; state.streak++;
+    fb.className = 'feedback pass'; fb.textContent = t.pass + '  (+100 XP)';
+    state.lastPass = true;
+    confetti();
+    advanceProgress();
+  } else {
+    state.streak = 0;
+    fb.className = 'feedback fail';
+    fb.textContent = '❌ Try again! Check the hint and look closely at the sample sheet. Tip: formulas start with "=".';
+    input.value = '';
+    renderSheet();
+  }
+  document.getElementById('xp').textContent = state.xp;
+  document.getElementById('streak').textContent = state.streak;
+}
+
+function advanceProgress(){
+  const fb = document.getElementById('feedback');
+  const cur = LEVELS[state.levelIndex];
+  state.tasksDone++;
+  if (state.tasksDone >= cur.tasks) {
+    // level complete -> next level unlock
+    state.tasksDone = 0; state.taskIndex = 0;
+    state.levelIndex++;
+    if (state.levelIndex < LEVELS.length) {
+      setTimeout(()=>{ confetti(); renderTask(); }, 100);
+      fb.className = 'feedback pass';
+      fb.textContent = `🎉 Level complete! ${LEVELS[state.levelIndex-1].name} is done — ${LEVELS[state.levelIndex].name} is now UNLOCKED. New tasks await below.`;
+    } else {
+      fb.className = 'feedback pass';
+      fb.textContent = '🏆 QUEST COMPLETE! All three levels finished. Replay any level for more practice.';
+    }
+  } else {
+    state.taskIndex = (state.taskIndex + 1);
+  }
+  renderLevels();
+  if (state.levelIndex < LEVELS.length) renderTask();
+}
+
+/* ============ INIT ============ */
+renderLevels(); renderTabs(); renderLesson(); renderSheet(); renderTask();
+document.getElementById('check-btn').addEventListener('click', checkAnswer);
+
+</script>
+</body>
+</html>
